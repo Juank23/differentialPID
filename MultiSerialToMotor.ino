@@ -30,9 +30,9 @@ int countl = 0;
 int countr = 0;
 
 enum photoInts {
-  ONE = B00000011.
-  TWO = B00000010.
-  THREE = B00000000.
+  ONE = B00000011,
+  TWO = B00000010,
+  THREE = B00000000,
   FOUR = B00000001
 };
 
@@ -113,9 +113,8 @@ int patternToState(int pattern) {
 }
 // Assumes only the lowest two bits are relevant, returns change in position.
 // Direction 00 > 01 > 11 > 10 > 00 being positive
-int quadratureChange(int prevState, int state) {
-  int state = 
-  return ret;
+static int quadratureChange(int prevState, int state) {
+  return state - prevState;
 }
 
 /**
