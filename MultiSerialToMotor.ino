@@ -49,8 +49,8 @@ void setup() {
   initSensors();
   portA = portABuf;
   setRGB(POST);
-  Serial.begin(9600);
-  Serial1.begin(38400);
+  Serial.begin(9600); // Comms to host
+  Serial1.begin(38400); // Comms to Qik
   initQik();
   setRGB(A_OK);
 }
@@ -82,17 +82,25 @@ void loop() {
  * Calculate the change in track position, change track counters
  **/
 void calcMovement() {
-  static int prevPortA = patternToState(portA);
+  static int prevPortA = portA;
   
+  // Mask lower two bits, right track
   if ((prevPortA & 0x03) != (portA & 0x03)) {
     countr++;
   }
+  
+  // Mask two bits for left track
   if ((prevPortA & 0x0C) != (portA & 0x0C)) {
     countl++;
   }
   prevPortA = portA;
 }
 
+// TODO - create a QE class with enums. Can set of error. Can count
+
+/**
+ * Convert a bit pattern (from QE) to an int
+ */
 int patternToState(int pattern) {
   switch (pattern) {
     case ONE:
@@ -114,6 +122,15 @@ int patternToState(int pattern) {
 // Assumes only the lowest two bits are relevant, returns change in position.
 // Direction 00 > 01 > 11 > 10 > 00 being positive
 static int quadratureChange(int prevState, int state) {
+  // Check for looped conditions
+  if (prevState == 4 && state == 1) {
+    return 1;
+  }
+  if (prevState == 1 && state == 4) {
+    return -1;
+  }
+  
+  // Normal circumstances
   return state - prevState;
 }
 
