@@ -98,6 +98,11 @@ void calcMovement() {
 
 // TODO - create a QE class with enums. Can set of error. Can count
 
+// track l, r = blah
+// track update left, right
+//  calc current speed
+
+
 /**
  * Convert a bit pattern (from QE) to an int
  */
@@ -165,7 +170,6 @@ void parseCom(int data) {
       Serial.print(countl);
       Serial.print("\tRight: ");
       Serial.println(countr);
-      Serial.println();
       break;
     case 'T':
       setRGB(COMMS);
