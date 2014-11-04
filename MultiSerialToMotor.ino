@@ -9,11 +9,13 @@
  
 */
 
+#include "Track.h"
+
 // Some serial command values
-#define RQ_ERR 0x82
-#define SPOOF_COM 0xBF
-#define FORMAT_ERR 0x40
-#define CONNECT 0xAA
+#define RQ_ERR 0x82      // Request error from qik
+#define SPOOF_COM 0xBF   // Bogus command for qik
+#define FORMAT_ERR 0x40  // Error status from qik if incorrect command given
+#define CONNECT 0xAA     // qik connect request sequence
 #define QIK_ERR 0x04
 #define ERR_PIN 10
 
@@ -24,34 +26,40 @@
 #define A_OK  3, 31, 0
 
 byte err = 0;
-volatile int portABuf;
-int portA;
+volatile byte portABuf;
+byte portA;
 int countl = 0;
 int countr = 0;
 
-enum photoInts {
-  ONE = B00000011,
-  TWO = B00000010,
-  THREE = B00000000,
-  FOUR = B00000001
-};
+Track leftTrack;
+Track rightTrack;
 
 void setup() {
+  // Set status led pins
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
   pinMode(BLUE_LED, OUTPUT);
+  
+  // Set status light to booting colour
+  setRGB(POST);
+  
+  // Set quadrature encoder sensor pins to input
   pinMode(8, INPUT);
   pinMode(9, INPUT);
   pinMode(10, INPUT);
   pinMode(13, INPUT);
+  
   // Set up track state
-  readQEs();
-  initSensors();
-  portA = portABuf;
-  setRGB(POST);
+  initSensors();          // attaches interupts, sets initial state (portABuf)
+  portA = portABuf;       // grab initial state
+  leftTrack.init(portA >> 2);
+  rightTrack.init(portA);
+
   Serial.begin(9600); // Comms to host
   Serial1.begin(38400); // Comms to Qik
   initQik();
+  
+  // All done, change status light
   setRGB(A_OK);
 }
 
@@ -74,69 +82,9 @@ void loop() {
   // check sensors
   if (portA != portABuf) {
     portA = portABuf;
-    calcMovement();
+    leftTrack.update(portA >> 2);
+    rightTrack.update(portA);
   }
-}
-
-/**
- * Calculate the change in track position, change track counters
- **/
-void calcMovement() {
-  static int prevPortA = portA;
-  
-  // Mask lower two bits, right track
-  if ((prevPortA & 0x03) != (portA & 0x03)) {
-    countr++;
-  }
-  
-  // Mask two bits for left track
-  if ((prevPortA & 0x0C) != (portA & 0x0C)) {
-    countl++;
-  }
-  prevPortA = portA;
-}
-
-// TODO - create a QE class with enums. Can set of error. Can count
-
-// track l, r = blah
-// track update left, right
-//  calc current speed
-
-
-/**
- * Convert a bit pattern (from QE) to an int
- */
-int patternToState(int pattern) {
-  switch (pattern) {
-    case ONE:
-      return 1;
-      break;
-    case TWO:
-      return 2;
-      break;
-    case THREE:
-      return 3;
-      break;
-    case FOUR:
-      return 4;
-      break;
-    default:
-      return 0;
-  }
-}
-// Assumes only the lowest two bits are relevant, returns change in position.
-// Direction 00 > 01 > 11 > 10 > 00 being positive
-static int quadratureChange(int prevState, int state) {
-  // Check for looped conditions
-  if (prevState == 4 && state == 1) {
-    return 1;
-  }
-  if (prevState == 1 && state == 4) {
-    return -1;
-  }
-  
-  // Normal circumstances
-  return state - prevState;
 }
 
 /**
@@ -166,10 +114,15 @@ void parseCom(int data) {
       Serial1.write(buf);
       break;
     case 'S':
+    case 's':
       Serial.print("Left: ");
-      Serial.print(countl);
+      Serial.print(leftTrack.getCount());
       Serial.print("\tRight: ");
-      Serial.println(countr);
+      Serial.print(rightTrack.getCount());
+      Serial.print("\tTime L: ");
+      Serial.print(leftTrack.getAverageTimePerStep());
+      Serial.print("\tR: ");
+      Serial.println(rightTrack.getAverageTimePerStep());
       break;
     case 'T':
       setRGB(COMMS);
@@ -193,6 +146,7 @@ void readQEs() {
  * Initiates interupts for quadrature encoders.
  **/
 void initSensors() {
+  readQEs();
   attachInterrupt(8, readQEs, CHANGE);
   attachInterrupt(9, readQEs, CHANGE);
   attachInterrupt(10, readQEs, CHANGE);
