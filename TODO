@@ -1,0 +1,18 @@
+Track has:
+* odometer
+* time
+
+Can return:
+* distance
+* current speed
+* desired speed
+* moving (bool)
+* status (error, OK)
+
+Can be:
+* odemeter reset
+* error reset
+* target speed set
+* braked/freewheel
+
+
