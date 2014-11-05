@@ -17,15 +17,14 @@ class Track {
     int getTargetMicrosPerCount();
     int getCount();
     void init(byte initState);
-    static const int num_samples = 7;
+    static const int num_samples = 5;
   private:
     static const byte ORDERED_STATES[];
-    int _times[num_samples] = {0, 0, 0, 0, 0, 0, 0};
-    int _sampleIndex;
+    int _times[num_samples];
     int _state;
     int _count;
     int _target;
-    int _totalTime;
+    long _totalTime;
     unsigned long _prevTime;
     int stateToVal(byte state);
     void updateTimes(long timeDif);

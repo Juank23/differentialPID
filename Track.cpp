@@ -11,8 +11,10 @@ const byte Track::ORDERED_STATES[] = {B00000001, B00000011, B00000010, B00000000
 Track::Track() {
   _count = 0;
   _target = 0;
-  _sampleIndex = 0;
   _totalTime = 0;
+  for (int j = 0; j < num_samples; j++) {
+    _times[j] = 0;
+  }
 }
 
 int Track::update(byte state) {
@@ -82,16 +84,17 @@ int Track::stateToVal(byte state) {
 
 void Track::updateTimes(long timeDif) {
   int dif = 0;
+  static int sampleIndex = 0;
   if (timeDif <= 0x0000FFFF) {
     dif = timeDif;
   }
   
-  _totalTime -= _times[_sampleIndex];
-  _times[_sampleIndex] = dif;
+  _totalTime -= _times[sampleIndex];
+  _times[sampleIndex] = dif;
   _totalTime += dif;
-  _sampleIndex++;
-  if (_sampleIndex >= num_samples) {
-    _sampleIndex = 0;
+  sampleIndex++;
+  if (sampleIndex >= num_samples) {
+    sampleIndex = 0;
   }
 }
   
